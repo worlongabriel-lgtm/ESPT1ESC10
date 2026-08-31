@@ -2,7 +2,7 @@
 
 **Projeto:** Loja Online Exemplo  
 **Disciplina:** Engenharia de Requisitos (ESPT1ESC10 - Unidade 3)  
-**Artefato Principal:** Histórias de Usuário, Critérios de Aceitação BDD, Requisitos Não-Funcionais e Matriz de Rastreabilidade  
+**Artefato Principal:** Histórias de Usuário, Critérios BDD, Diagramas Visuais (Mermaid), RNFs e Matriz de Rastreabilidade  
 
 ---
 
@@ -10,11 +10,57 @@
 
 Este documento apresenta a especificação completa de requisitos de software para a **Loja Online Exemplo**, desenvolvida com o suporte de técnicas de IA Generativa e refinada através de engenharia de requisitos tradicional. 
 
-O objetivo principal deste projeto é demonstrar a elicitação, estruturação e rastreabilidade de requisitos funcionais e não-funcionais utilizando **Histórias de Usuário** e **Critérios de Aceitação em BDD (Behavior-Driven Development / Gherkin)**.
+O objetivo principal deste projeto é demonstrar a elicitação, estruturação, visualização e rastreabilidade de requisitos funcionais e não-funcionais utilizando **Histórias de Usuário**, **Diagramas de Fluxo/Sequência (Mermaid)** e **Critérios de Aceitação em BDD (Behavior-Driven Development / Gherkin)**.
 
 ---
 
-## 2. Requisitos Funcionais (Histórias de Usuário)
+## 📐 2. Diagramas de Arquitetura e Fluxo (Mermaid)
+
+Para complementar a especificação textual com modelos visuais dinâmicos, abaixo são apresentados os fluxos de navegação e sequência de pagamentos:
+
+### 2.1 Diagrama de Navegação do Usuário (User Journey Flow)
+
+```mermaid
+flowchart TD
+    A[Visitante] -->|HU01: Cadastro| B(Conta Criada)
+    A -->|HU02: Login| C[Usuário Autenticado]
+    B --> C
+    C -->|HU03: Busca e Filtro| D[Catálogo de Produtos]
+    D -->|HU04: Adicionar ao Carrinho| E[Carrinho de Compras]
+    E -->|HU05: Checkout| F{Forma de Pagamento}
+    F -->|PIX| G[QR Code Gerado]
+    F -->|Cartão| H[Aprovação Financeira]
+    F -->|Boleto| I[Boleto Gerado]
+    G --> J[Pedido Confirmado]
+    H --> J
+    I --> J
+```
+
+### 2.2 Diagrama de Sequência - Processamento de Checkout (HU05)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Cliente as Usuário Autenticado
+    participant Frontend as Aplicação Web (React)
+    participant Backend as Servidor de Requisitos / API
+    participant Gateway as Gateway de Pagamento (PIX/Cartão)
+
+    Cliente->>Frontend: Seleciona itens e clica em "Finalizar Compra"
+    Frontend->>Backend: POST /api/v1/checkout (Itens, Endereço)
+    Backend->>Backend: Valida estoque e calcula frete
+    Backend->>Gateway: Solicita autorização de pagamento
+    Gateway-->>Backend: Confirmação de Transação Aprovada
+    Backend->>Backend: Esvazia Carrinho & Gera Pedido (#10928)
+    Backend-->>Frontend: Retorna Sucesso (Número do Pedido)
+    Frontend-->>Cliente: Exibe Tela de Confirmação & Envia E-mail
+```
+
+---
+
+## 3. Requisitos Funcionais (Histórias de Usuário)
+
+> 💡 *Nota:* Os arquivos `.feature` executáveis para testes automatizados BDD estão disponíveis na pasta [`features/`](file:///C:/Users/worlo/.gemini/antigravity/scratch/ESPT1ESC10/features).
 
 ### 📌 HU01 – Cadastro de Usuário
 - **Prioridade:** Alta  
@@ -161,7 +207,7 @@ Cenário 2: Confirmação e número de pedido
 
 ---
 
-## 3. Requisitos Não-Funcionais (RNF)
+## 4. Requisitos Não-Funcionais (RNF)
 
 | Código | Categoria | Descrição do Requisito | Métrica / Meta |
 |:---|:---|:---|:---|
@@ -172,18 +218,19 @@ Cenário 2: Confirmação e número de pedido
 
 ---
 
-## 4. Glossário de Termos
+## 5. Glossário de Termos
 
 - **BDD (Behavior-Driven Development):** Técnica de desenvolvimento guiado por comportamento que utiliza linguagem natural em formato *Given-When-Then* (Dado-Quando-Então).
 - **Checkout:** Processo final de uma compra online, no qual são informados endereço, frete e pagamento.
 - **Gherkin:** Linguagem DSL sintática utilizada para descrever critérios de aceitação executáveis.
 - **História de Usuário (User Story):** Descrição concisa de uma funcionalidade sob a perspectiva de quem irá utilizá-la.
+- **Mermaid:** Ferramenta baseada em Markdown para renderização dinâmica de diagramas de sequência e fluxo no GitHub.
 - **MVP (Minimum Viable Product):** Versão enxuta do produto com valor suficiente para ser entregue aos usuários.
 - **Story Points:** Unidade abstrata de medida utilizada em metodologias ágeis para estimar o esforço relativo de uma História de Usuário.
 
 ---
 
-## 5. Matriz de Rastreabilidade
+## 6. Matriz de Rastreabilidade
 
 A matriz abaixo conecta cada História de Usuário aos seus Requisitos Funcionais, Critérios de Aceitação e Requisitos Não-Funcionais associados:
 
@@ -197,10 +244,11 @@ A matriz abaixo conecta cada História de Usuário aos seus Requisitos Funcionai
 
 ---
 
-## 6. Registro de Prompts de IA Generativa & Curadoria
+## 7. Registro de Prompts de IA Generativa & Curadoria
 
 | Fase | Prompt Utilizado | Resultado da IA Generativa | Ação de Curadoria Humana |
 |:---|:---|:---|:---|
 | **Elicitação** | *"Liste as 5 principais histórias de usuário para uma loja virtual em formato Como/Quero/Para."* | Forneceu as HUs de cadastro, login, busca, carrinho e checkout. | **Aprovado:** Mantidas todas as 5 HUs por representarem o fluxo essencial (Happy Path) de e-commerce. |
 | **Detalhamento BDD** | *"Escreva critérios de aceitação em formato Gherkin (Dado/Quando/Então) para login e cadastro."* | Escreveu cenários simples de login com sucesso e falha. | **Adaptado:** Incluída a regra de segurança de retornar mensagem genérica de erro para evitar enumeração de contas. |
+| **Diagramas Visuais** | *"Crie um diagrama de sequência Mermaid para o fluxo de checkout e um fluxograma de jornada de usuário."* | Gerou código Mermaid para visualização dinâmica direta no GitHub. | **Aprovado:** Integrado ao documento de especificação na seção 2. |
 | **Análise de Exceção** | *"Quais falhas podem ocorrer no carrinho de compras e no checkout?"* | Sugeriu suporte a cupom de desconto e login via redes sociais. | **Descartado:** Removidos cupons e login social neste momento para manter o escopo do MVP alinhado às restrições do projeto. |
