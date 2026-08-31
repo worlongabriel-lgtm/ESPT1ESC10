@@ -1,59 +1,64 @@
-# 📚 Engenharia de Requisitos com IA Generativa
+# 📚 Engenharia de Requisitos com IA Generativa (ESPT1ESC10)
 
-Este repositório contém a especificação completa de requisitos de software desenvolvida para a **Unidade 3** da disciplina (**ESPT1ESC10**), aplicando **Histórias de Usuário** e **Critérios de Aceitação em BDD** elaborados com o auxílio de inteligência artificial generativa e validação técnica humana.
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Requisitos](https://img.shields.io/badge/Especifica%C3%A7%C3%A3o-Unidade%203-green.svg)](artefatos/especificacao.md)
+
+Este repositório contém o documento de especificação completa de requisitos de software para o sistema **Loja Online Exemplo**, desenvolvido no âmbito da **Unidade 3** da disciplina (**ESPT1ESC10**). O trabalho demonstra a aplicação prática de **Histórias de Usuário** e **Critérios de Aceitação em BDD** gerados com o suporte de IA Generativa e validados por curadoria técnica humana.
 
 ---
 
-## 📁 Estrutura do Repositório
+## 📂 Estrutura do Repositório
 
 ```text
 ESPT1ESC10/
 │
 ├── README.md                          # Visão geral, metodologia e análise crítica
 └── artefatos/
-    └── historias_usuario.md           # Artefato principal de requisitos (HUs e BDD)
+    └── especificacao.md               # Documento completo de especificação de requisitos
 ```
 
 ---
 
-## 🎯 Artefatos Escolhidos
+## 🎯 Artefatos Escolhidos e Justificativa
 
 - **Histórias de Usuário (User Stories)**
 - **Critérios de Aceitação (BDD / Gherkin)**
+- **Matriz de Rastreabilidade e Glossário**
 
-### 💡 Justificativa
-A escolha desses artefatos baseia-se nos seguintes pilares:
-1. **Foco no Valor do Usuário:** O formato *"Como... Quero... Para..."* mantém a equipe focada na real necessidade do cliente final antes da implementação técnica.
-2. **Comunicação Eficiente:** Serve como ponte de linguagem clara entre stakeholders de negócio, desenvolvedores e profissionais de testes (QA).
-3. **Testabilidade Rápida:** Os critérios de aceitação em formato Gherkin (*Dado, Quando, Então*) facilitam a automação de testes funcionais e a validação de aceite.
-4. **Agilidade e Priorização:** Permitem dividir o sistema em pequenas entregas de valor priorizáveis em um backlog dinâmico.
+### 💡 Por que esses artefatos?
+1. **Foco no Valor de Negócio:** O formato *"Como... Quero... Para..."* alinha o desenvolvimento técnico às reais necessidades do usuário final.
+2. **Linguagem Ubíqua (BDD):** O padrão *Dado / Quando / Então* elimina ambiguidades entre stakeholders, desenvolvedores e equipe de testes (QA).
+3. **Priorização e Agilidade:** Permite a estimativa em Story Points e o fatiamento fino do backlog para sprints de desenvolvimento.
+4. **Rastreabilidade:** A matriz de rastreabilidade garante que cada requisito não-funcional (segurança, performance) esteja associado à sua respectiva história.
 
 ---
 
-## 🤖 Processo de Engenharia de Prompts e Uso de IA Generativa
+## 🤖 Metodologia e Prompts de IA Generativa
 
-A Inteligência Artificial Generativa foi utilizada durante todo o ciclo de concepção dos requisitos seguindo o fluxo de engenharia de prompts:
+A Inteligência Artificial foi utilizada como assistente de elicitação e refinamento ao longo de 4 etapas:
 
-1. **Geração Inicial de Ideias (Elicitação):** Prompts solicitando mapeamento de fluxos principais de um sistema e-commerce de exemplo.
-2. **Estruturação em BDD:** Prompts solicitando a transformação dos requisitos em cenários *Given-When-Then* (Dado-Quando-Então).
-3. **Análise de Fronteiras e Casos de Exceção:** Consulta à IA sobre falhas comuns (e.g., comportamento em perda de conexão, senhas fracas, injeção de dados).
+1. **Elicitação Inicial:** *Prompt:* "Atue como Engenheiro de Requisitos e liste as principais Histórias de Usuário para um e-commerce..."
+2. **Modelagem em BDD:** *Prompt:* "Escreva cenários de aceitação em formato Gherkin (Dado/Quando/Então) para cada história..."
+3. **Análise de Fronteira e Segurança:** *Prompt:* "Identifique casos de erro, falhas de segurança e limites de validação para a HU de cadastro e login..."
+4. **Matriz e Glossário:** *Prompt:* "Gere um glossário de termos do domínio e uma matriz de rastreabilidade mapeando HUs aos RNFs..."
 
 ---
 
 ## 🔍 Análise Crítica e Curadoria Humana
 
-A atuação humana foi fundamental para garantir a qualidade final da especificação:
+A intervenção humana garantiu o rigor técnico e o alinhamento ao escopo:
 
-* **✅ Sugestões Aproveitadas na Íntegra:** Estrutura base do formato `Dado / Quando / Então` para critérios funcionais padrão (ex: mensagem de confirmação de cadastro).
-* **🔄 Sugestões Adaptadas:** 
-  * A IA havia gerado critérios genéricos de validação de senha. Adaptamos para exigir regras específicas de segurança (mínimo de 8 caracteres, letras e números).
-  * Inclusão explicita de mensagens de erro claras para evitar vazamento de informação de segurança na autenticação.
-* **❌ Sugestões Descartadas:**
-  * Sugestão da IA para inclusão imediata de autenticação social (OAuth 2.0 / Google / Apple) na HU de MVP, descartada para manter o escopo enxuto da entrega.
+* **✅ Aproveitado Integralmente:** Estrutura dos fluxos felizes em Gherkin e terminologia padrão de e-commerce.
+* **🔄 Adaptado:** 
+  * Inclusão de regras de segurança rígidas no cadastro e login (mensagens genéricas de erro para prevenir enumeração de contas).
+  * Adição de calculadoras automáticas de frete e atualização dinâmica no carrinho de compras (HU04).
+  * Adição de estimativas em Story Points e níveis de prioridade (Alta / Média).
+* **❌ Descartado:** 
+  * Integração inicial com redes sociais (OAuth 2.0) e recomendação por IA no carrinho, visando manter o escopo enxuto do MVP.
 
 ---
 
-## 🔗 Acesso aos Artefatos
+## 📄 Especificação Completa
 
-Acesse o documento completo de especificação em:
-👉 [**Artefatos: Histórias de Usuário e Critérios de Aceitação**](file:///C:/Users/worlo/.gemini/antigravity/scratch/ESPT1ESC10/artefatos/historias_usuario.md)
+Consulte o documento técnico detalhado com todas as 5 Histórias de Usuário, Critérios BDD, RNFs, Glossário e Matriz de Rastreabilidade:
+👉 [**Ir para especificacao.md**](file:///C:/Users/worlo/.gemini/antigravity/scratch/ESPT1ESC10/artefatos/especificacao.md)
