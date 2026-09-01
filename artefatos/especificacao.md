@@ -1,208 +1,183 @@
 # 📄 Documento de Especificação de Requisitos
 
-**Projeto:** Loja Online Exemplo  
-**Disciplina:** Engenharia de Requisitos (ESPT1ESC10 - Unidade 3)  
-**Artefato Principal:** Histórias de Usuário, Critérios BDD, Diagramas Visuais (Mermaid), RNFs e Matriz de Rastreabilidade  
+**Sistema:** Sistema de Gestão de Eventos (Eventus / SGE)  
+**Disciplina:** Engenharia de Requisitos com IA Generativa (ESPT1ESC10 - Unidade 3)  
+**Artefato Principal:** Histórias de Usuário (agrupadas por Ator/Stakeholder), Critérios de Aceitação BDD, Diagramas Visuais (Mermaid), Matriz de Rastreabilidade e Tratamento de Lacunas (OB1-OB9)
 
 ---
 
-## 1. Introdução
+## 1. Introdução e Visão Geral
 
-Este documento apresenta a especificação completa de requisitos de software para a **Loja Online Exemplo**, desenvolvida com o suporte de técnicas de IA Generativa e refinada através de engenharia de requisitos tradicional. 
+Este documento apresenta a especificação formal dos requisitos de software para o **Sistema de Gestão de Eventos (Eventus / SGE)**, elaborado a partir da análise das entrevistas de elicitação e refinado com o auxílio de ferramentas de IA Generativa e curadoria humana.
 
-O objetivo principal deste projeto é demonstrar a elicitação, estruturação, visualização e rastreabilidade de requisitos funcionais e não-funcionais utilizando **Histórias de Usuário**, **Diagramas de Fluxo/Sequência (Mermaid)** e **Critérios de Aceitação em BDD (Behavior-Driven Development / Gherkin)**.
+O sistema destina-se a centralizar a criação de eventos, gestão de inscrições, controle concorrencial de vagas, pagamentos assíncronos, gestão de lista de espera, políticas flexíveis de cancelamento/reembolso e emissão automatizada de certificados.
+
+### 👥 Mapeamento dos Perfis de Stakeholders (Atores)
+- **Participante:** Usuário final que busca eventos, realiza inscrições, efetua pagamentos, solicita cancelamentos e emite certificados.
+- **Organizador:** Responsável por cadastrar eventos, definir capacidade de vagas, configurar parâmetros de políticas e acompanhar relatórios.
+- **Equipe Financeira:** Acompanha repasses, confirmações de pagamento assíncronas e liberação de reembolsos.
+- **Palestrante:** Acessa a lista de inscritos em seus workshops e estatísticas agregadas de público respeitando a LGPD.
+- **Equipe de TI / Administração:** Mantém o ambiente de nuvem, segurança e auditoria do sistema.
 
 ---
 
-## 📐 2. Diagramas de Arquitetura e Fluxo (Mermaid)
+## 📐 2. Modelagem e Arquitetura Visual (Mermaid)
 
-Para complementar a especificação textual com modelos visuais dinâmicos, abaixo são apresentados os fluxos de navegação e sequência de pagamentos:
-
-### 2.1 Diagrama de Navegação do Usuário (User Journey Flow)
+### 2.1 Máquina de Estados da Inscrição (State Diagram)
+O ciclo de vida de uma inscrição evolui de acordo com eventos temporais e financeiros:
 
 ```mermaid
-flowchart TD
-    A[Visitante] -->|HU01: Cadastro| B(Conta Criada)
-    A -->|HU02: Login| C[Usuário Autenticado]
-    B --> C
-    C -->|HU03: Busca e Filtro| D[Catálogo de Produtos]
-    D -->|HU04: Adicionar ao Carrinho| E[Carrinho de Compras]
-    E -->|HU05: Checkout| F{Forma de Pagamento}
-    F -->|PIX| G[QR Code Gerado]
-    F -->|Cartão| H[Aprovação Financeira]
-    F -->|Boleto| I[Boleto Gerado]
-    G --> J[Pedido Confirmado]
-    H --> J
-    I --> J
+stateDiagram-v2
+    [*] --> Criada: Iniciar Inscrição
+    Criada --> Reservada: Trava Temporária de Vaga (15 min)
+    Reservada --> Confirmada: Pagamento Aprovado (PIX/Cartão)
+    Reservada --> Expirada: Tempo de 15 min Esgotado
+    Confirmada --> Cancelada: Solicitação de Cancelamento (Política)
+    Confirmada --> Concluida: Evento Realizado + Check-in
+    Expirada --> [*]
+    Cancelada --> [*]
+    Concluida --> [*]
 ```
 
-### 2.2 Diagrama de Sequência - Processamento de Checkout (HU05)
+### 2.2 Diagrama de Sequência - Reserva Temporária e Pagamento (HU01)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Cliente as Usuário Autenticado
-    participant Frontend as Aplicação Web (React)
-    participant Backend as Servidor de Requisitos / API
-    participant Gateway as Gateway de Pagamento (PIX/Cartão)
+    actor P as Participante
+    participant S as Frontend Eventus
+    participant B as Backend SGE
+    participant G as Gateway de Pagamento
 
-    Cliente->>Frontend: Seleciona itens e clica em "Finalizar Compra"
-    Frontend->>Backend: POST /api/v1/checkout (Itens, Endereço)
-    Backend->>Backend: Valida estoque e calcula frete
-    Backend->>Gateway: Solicita autorização de pagamento
-    Gateway-->>Backend: Confirmação de Transação Aprovada
-    Backend->>Backend: Esvazia Carrinho & Gera Pedido (#10928)
-    Backend-->>Frontend: Retorna Sucesso (Número do Pedido)
-    Frontend-->>Cliente: Exibe Tela de Confirmação & Envia E-mail
+    P->>S: Seleciona vaga no evento e clica em "Garantir Vaga"
+    S->>B: POST /api/v1/inscricao/reservar
+    B->>B: Valida estoque e bloqueia vaga temporariamente (Hold 15 min)
+    B-->>S: Retorna código PIX e contador de 15 minutos
+    P->>G: Realiza pagamento via PIX no app do banco
+    G-->>B: Webhook de confirmação de pagamento
+    B->>B: Transita estado para "Confirmada" & emite comprovante
+    B-->>S: Notifica usuário "Inscrição Confirmada!"
 ```
 
 ---
 
-## 3. Requisitos Funcionais (Histórias de Usuário)
+## 3. Requisitos Funcionais - Histórias de Usuário por Ator
 
-> 💡 *Nota:* Os arquivos `.feature` executáveis para testes automatizados BDD estão disponíveis na pasta [`features/`](file:///C:/Users/worlo/.gemini/antigravity/scratch/ESPT1ESC10/features).
+### 👤 Ator: Participante
 
-### 📌 HU01 – Cadastro de Usuário
-- **Prioridade:** Alta  
-- **Estimativa:** 5 Story Points  
+#### 📌 HU01 – Inscrição com Trava Temporária de Vaga
+- **Prioridade:** Alta | **Estimativa:** 8 Story Points  
 - **Descrição:**  
-  **Como** visitante da loja online  
-  **Quero** criar uma conta utilizando meu e-mail e uma senha  
-  **Para** acessar funcionalidades exclusivas da plataforma e realizar compras.
+  **Como** participante de um evento  
+  **Quero** reservar temporariamente uma vaga durante o processo de checkout  
+  **Para** ter a garantia de que não perderei o lugar enquanto concluo o pagamento.
 
-#### 📋 Critérios de Aceitação (BDD)
+##### 📋 Critérios de Aceitação (BDD)
 ```gherkin
-Cenário 1: Cadastro realizado com sucesso
-  Dado que o visitante está na página de cadastro
-  Quando preenche um e-mail válido (ex: cliente@email.com) e uma senha forte (mínimo 8 caracteres)
-  E clica em "Cadastrar"
-  Então a conta deve ser criada com sucesso
-  E o sistema deve exibir a mensagem "Cadastro realizado com sucesso!"
-  E enviar um e-mail de confirmação de conta.
+Cenário 1: Reserva bem-sucedida e confirmação dentro do prazo
+  Dado que o evento possui vagas disponíveis
+  Quando o participante clica em "Garantir Vaga"
+  Então o sistema reserva a vaga pelo prazo de 15 minutos
+  E se o pagamento for confirmado dentro de 15 minutos, a vaga torna-se definitiva.
 
-Cenário 2: Tentativa de cadastro com e-mail já existente
-  Dado que o e-mail "cliente@email.com" já possui cadastro no sistema
-  Quando outro visitante tenta utilizar esse mesmo e-mail no formulário
-  Então o sistema não deve permitir o cadastro
-  E deve exibir a mensagem de erro "Este e-mail já está cadastrado."
-
-Cenário 3: Validação de tamanho mínimo de senha
-  Dado que o visitante informa uma senha com menos de 8 caracteres
-  Quando ele tenta submeter o formulário
-  Então o sistema bloqueia o envio
-  E exibe o alerta "A senha deve conter no mínimo 8 caracteres."
+Cenário 2: Expiração de vaga por ausência de pagamento
+  Dado que a vaga foi reservada pelo prazo de 15 minutos
+  Quando o tempo se esgota sem confirmação de pagamento
+  Então a reserva é cancelada automaticamente e a vaga retorna ao estoque.
 ```
 
 ---
 
-### 📌 HU02 – Autenticação e Login
-- **Prioridade:** Alta  
-- **Estimativa:** 3 Story Points  
+#### 📌 HU02 – Cancelamento e Reembolso Condicional
+- **Prioridade:** Alta | **Estimativa:** 5 Story Points  
 - **Descrição:**  
-  **Como** usuário cadastrado  
-  **Quero** realizar login com minhas credenciais de acesso  
-  **Para** acessar minha área restrita e histórico de pedidos.
+  **Como** participante inscrito  
+  **Quero** solicitar o cancelamento da minha inscrição  
+  **Para** receber o reembolso total ou parcial de acordo com a antecedência e os termos do evento.
 
-#### 📋 Critérios de Aceitação (BDD)
+##### 📋 Critérios de Aceitação (BDD)
 ```gherkin
-Cenário 1: Login realizado com sucesso
-  Dado que o usuário tem uma conta ativa
-  Quando informa seu e-mail e senha corretos na página de login
-  E clica em "Entrar"
-  Então o sistema autentica o usuário com sucesso
-  E o redireciona para a página inicial com a sessão iniciada.
+Cenário 1: Cancelamento dentro do prazo regulamentado
+  Dado que a política do evento permite cancelamento até 48 horas antes da abertura
+  Quando o participante solicita o cancelamento com 72 horas de antecedência
+  Então a inscrição é cancelada, a vaga é liberada e a devolução do valor é encaminhada ao financeiro.
 
-Cenário 2: Login com credenciais inválidas (Segurança)
-  Dado que o usuário está na página de login
-  Quando informa um e-mail ou senha incorretos
-  Então o sistema recusa a autenticação
-  E exibe a mensagem de erro "E-mail ou senha incorretos."
-
-Cenário 3: Recuperação de senha
-  Dado que o usuário esqueceu sua senha de acesso
-  Quando clica no link "Esqueci minha senha" e informa o e-mail cadastrado
-  Então o sistema envia um e-mail contendo um link com token temporário para redefinição.
+Cenário 2: Cancelamento negado fora da janela de antecedência
+  Dado que faltam menos de 24 horas para o início do evento
+  Quando o participante tenta cancelar sua inscrição
+  Então o sistema impede o cancelamento com a mensagem "Fora do prazo limite de reembolso".
 ```
 
 ---
 
-### 📌 HU03 – Consulta e Busca de Produtos
-- **Prioridade:** Alta  
-- **Estimativa:** 5 Story Points  
+#### 📌 HU03 – Fila e Lista de Espera Automática
+- **Prioridade:** Média | **Estimativa:** 5 Story Points  
 - **Descrição:**  
-  **Como** usuário da plataforma  
-  **Quero** visualizar a lista de produtos, buscar por termo e aplicar filtros  
-  **Para** encontrar os itens que desejo comprar com agilidade.
+  **Como** participante interessado em um evento esgotado  
+  **Quero** me cadastrar na lista de espera  
+  **Para** ser convocado automaticamente caso uma vaga seja liberada por desistência.
 
-#### 📋 Critérios de Aceitação (BDD)
+##### 📋 Critérios de Aceitação (BDD)
 ```gherkin
-Cenário 1: Listagem padrão de produtos
-  Dado que o usuário acessa a página do catálogo
-  Então o sistema deve exibir os produtos em grade com nome, preço, imagem e status de estoque.
-
-Cenário 2: Busca por palavra-chave
-  Dado que o usuário digita "Notebook" no campo de busca
-  Quando clica no ícone de pesquisa ou pressiona Enter
-  Então o sistema filtra e exibe apenas produtos que contenham "Notebook" no título ou descrição.
-
-Cenário 3: Filtragem por categoria e faixa de preço
-  Dado que o usuário seleciona a categoria "Informática" e faixa de preço de até R$ 3.000,00
-  Quando aplica os filtros
-  Então a lista exibe exclusivamente produtos da categoria "Informática" com valor menor ou igual a R$ 3.000,00.
+Cenário 1: Convocação por e-mail com tempo limite para aceite
+  Dado que uma vaga foi liberada no evento esgotado
+  Quando o sistema convoca o 1º colocado da lista de espera enviando um link temporário
+  Então o participante tem 24 horas para aceitar e pagar a inscrição antes que o convite expire.
 ```
 
 ---
 
-### 📌 HU04 – Carrinho de Compras
-- **Prioridade:** Média  
-- **Estimativa:** 5 Story Points  
+#### 📌 HU04 – Emissão de Certificado Vinculada ao Check-in
+- **Prioridade:** Alta | **Estimativa:** 3 Story Points  
 - **Descrição:**  
-  **Como** usuário autenticado  
-  **Quero** adicionar e gerenciar produtos no meu carrinho de compras  
-  **Para** revisar os itens e valores antes de finalizar o pedido.
+  **Como** participante presente  
+  **Quero** emitir meu certificado digital após o encerramento do evento  
+  **Para** comprovar minhas horas de atividades complementares.
 
-#### 📋 Critérios de Aceitação (BDD)
+##### 📋 Critérios de Aceitação (BDD)
 ```gherkin
-Cenário 1: Adicionar produto ao carrinho
-  Dado que o usuário está na página de um produto disponível
-  Quando clica no botão "Adicionar ao Carrinho"
-  Então o produto é incluído no carrinho
-  E o contador de itens no cabeçalho é incrementado em 1.
-
-Cenário 2: Alteração de quantidade e remoção de itens
-  Dado que o usuário está na página do carrinho
-  Quando altera a quantidade de um item de 1 para 3 ou clica em "Remover"
-  Então o subtotal do item e o valor total do carrinho são recalculados instantaneamente.
-
-Cenário 3: Resumo detalhado do carrinho
-  Dado que o carrinho possui itens adicionados
-  Então o sistema deve exibir o resumo com subtotal, valor do frete calculado e valor total a pagar.
+Cenário 1: Emissão autorizada após check-in confirmado
+  Dado que o evento foi concluído e o participante possui presença registrada (>= 75%)
+  Quando acessa a área de certificados e clica em "Baixar PDF"
+  Então o sistema gera o certificado em PDF com selo de autenticidade e QR Code.
 ```
 
 ---
 
-### 📌 HU05 – Finalização da Compra (Checkout)
-- **Prioridade:** Alta  
-- **Estimativa:** 8 Story Points  
+### 👨‍💼 Ator: Organizador
+
+#### 📌 HU05 – Configuração de Políticas do Evento (Perfis de Política)
+- **Prioridade:** Alta | **Estimativa:** 8 Story Points  
 - **Descrição:**  
-  **Como** usuário autenticado  
-  **Quero** finalizar o pagamento dos itens do meu carrinho  
-  **Para** concluir meu pedido e receber os produtos no meu endereço.
+  **Como** organizador de eventos  
+  **Quero** configurar prazos de cancelamento, regras de reembolso e tempo de retenção de vagas  
+  **Para** ajustar o sistema às regras específicas de cada evento antes da abertura das inscrições.
 
-#### 📋 Critérios de Aceitação (BDD)
+##### 📋 Critérios de Aceitação (BDD)
 ```gherkin
-Cenário 1: Checkout com pagamento via PIX / Cartão / Boleto
-  Dado que o usuário está no passo de pagamento do checkout
-  Quando seleciona uma forma de pagamento válida (PIX, Cartão de Crédito ou Boleto)
-  E confirma o endereço de entrega
-  E clica em "Finalizar Pedido"
-  Então a transação é processada com a operadora financeira.
+Cenário 1: Definição de parâmetros de reembolso e cancelamento
+  Dado que o organizador está cadastrando um novo evento
+  Quando define a janela de cancelamento (ex: 48h) e a porcentagem de reembolso (ex: 80%)
+  Então o sistema salva a política e aplica as regras automaticamente aos inscritos desse evento.
+```
 
-Cenário 2: Confirmação e número de pedido
-  Dado que o pagamento foi processado com sucesso
-  Então o carrinho é esvaziado
-  E o sistema exibe a tela de confirmação com o Número do Pedido e o resumo da compra
-  E envia o comprovante para o e-mail do cliente.
+---
+
+### 🎙️ Ator: Palestrante
+
+#### 📌 HU06 – Consulta de Inscritos e Proteção de Dados (LGPD)
+- **Prioridade:** Média | **Estimativa:** 3 Story Points  
+- **Descrição:**  
+  **Como** palestrante  
+  **Quero** visualizar o perfil e o número de participantes da minha sessão  
+  **Para** adequar o conteúdo pedagógico sem violar a privacidade dos inscritos.
+
+##### 📋 Critérios de Aceitação (BDD)
+```gherkin
+Cenário 1: Visualização anonimizada de dados dos participantes
+  Dado que o palestrante acessa o painel da sua palestra
+  Quando visualiza a lista de inscritos
+  Então o sistema exibe apenas cargos, empresas e estatísticas agregadas, ocultando e-mails e CPFs sem consentimento.
 ```
 
 ---
@@ -211,44 +186,60 @@ Cenário 2: Confirmação e número de pedido
 
 | Código | Categoria | Descrição do Requisito | Métrica / Meta |
 |:---|:---|:---|:---|
-| **RNF01** | **Segurança** | As senhas dos usuários devem ser criptografadas no banco de dados e as comunicações protegidas via protocolo HTTPS. | Algoritmo `bcrypt` (fator >= 10) e suporte a TLS 1.3 |
-| **RNF02** | **Usabilidade** | A interface do sistema deve ser responsiva e intuitiva em dispositivos móveis e desktops. | Padrão Mobile-First e conformidade com WCAG 2.1 nível AA |
-| **RNF03** | **Performance** | O tempo de carregamento das páginas de catálogo e busca deve ser rápido. | Tempo de resposta <= 2 segundos (LCP < 2.5s) |
-| **RNF04** | **Disponibilidade** | O sistema deve estar operacional continuamente durante o ano. | Uptime SLA de 99.9% em ambiente de nuvem |
+| **RNF01** | **Concorrência** | O sistema deve suportar picos de acessos simultâneos na abertura de inscrições de eventos populares sem duplicar a alocação de vagas. | Controle de locks pessimistas/otimistas no banco (suporte a 500 req/s) |
+| **RNF02** | **Segurança & LGPD** | Os dados pessoais dos participantes devem ser protegidos com criptografia e termo de consentimento explícito. | Protocolo TLS 1.3, hashing bcrypt para senhas e conformidade LGPD |
+| **RNF03** | **Performance** | O tempo de carregamento de páginas de catálogo e emissão de certificados deve ser ágil. | Tempo de resposta <= 2,0 segundos (LCP < 2.5s) |
+| **RNF04** | **Disponibilidade** | O sistema deve estar continuamente operacional durante o período de inscrições de grandes eventos. | SLA de Uptime de 99.9% em ambiente de nuvem |
 
 ---
 
-## 5. Glossário de Termos
+## 5. Análise de Indefinições e Lacunas da Elicitação (OB1 a OB9)
 
-- **BDD (Behavior-Driven Development):** Técnica de desenvolvimento guiado por comportamento que utiliza linguagem natural em formato *Given-When-Then* (Dado-Quando-Então).
-- **Checkout:** Processo final de uma compra online, no qual são informados endereço, frete e pagamento.
-- **Gherkin:** Linguagem DSL sintática utilizada para descrever critérios de aceitação executáveis.
-- **História de Usuário (User Story):** Descrição concisa de uma funcionalidade sob a perspectiva de quem irá utilizá-la.
-- **Mermaid:** Ferramenta baseada em Markdown para renderização dinâmica de diagramas de sequência e fluxo no GitHub.
-- **MVP (Minimum Viable Product):** Versão enxuta do produto com valor suficiente para ser entregue aos usuários.
-- **Story Points:** Unidade abstrata de medida utilizada em metodologias ágeis para estimar o esforço relativo de uma História de Usuário.
+O documento oficial de elicitação trazia 9 pontos declaradamente indefinidos (**OB1 a OB9**). A tabela abaixo demonstra como nossa especificação tratou cada ponto:
+
+| Código | Item Indefinido na Elicitação | Solução Adotada na Especificação |
+|:---|:---|:---|
+| **OB1** | Prazos de cancelamento e devolução de valores | **Tratado como parâmetro configurável** no Perfil de Política do Evento (HU05). |
+| **OB2** | Critérios para funcionamento da lista de espera | **Automação por fila de chegada com convite de 24h** (HU03). |
+| **OB3** | Tempo de reserva temporária da vaga durante o pagamento | **Hold temporal fixado em 15 minutos** com liberação automática (HU01). |
+| **OB4** | Regras e condições para emissão de certificados | **Condicionado ao registro de check-in / presença mínima (75%)** (HU04). |
+| **OB5** | Política de notificação de inscritos | **Envio automatizado de e-mails de confirmação e convites** via serviço assíncrono. |
+| **OB6** | Conflito de horário entre workshops simultâneos | **Bloqueio no frontend/backend** impedindo inscrições em horários sobrepostos. |
+| **OB7** | Visibilidade de dados de participantes para palestrantes | **Minimização de dados conforme LGPD** (HU06). |
+| **OB8** | Formas de pagamento aceitas | **Integração genérica via PIX, Cartão e Boleto** com webhooks assíncronos. |
+| **OB9** | Critérios de acessibilidade e desempenho | **Definição de metas quantitativas no RNF02 e RNF03**. |
 
 ---
 
-## 6. Matriz de Rastreabilidade
+## 6. Glossário do Domínio
 
-A matriz abaixo conecta cada História de Usuário aos seus Requisitos Funcionais, Critérios de Aceitação e Requisitos Não-Funcionais associados:
+- **BDD (Behavior-Driven Development):** Desenvolvimento guiado por comportamento utilizando sintaxe natural Gherkin (*Given-When-Then*).
+- **Check-in:** Registro presencial ou online que confirma a presença efetiva do participante no evento.
+- **Hold Temporário (Trava de Vaga):** Bloqueio por tempo determinado (ex: 15 min) que garante a vaga do participante enquanto ele conclui o pagamento.
+- **LGPD:** Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+- **Lista de Espera (Waitlist):** Fila ordenada que aloca automaticamente vagas liberadas por desistência.
+- **Perfil de Política do Evento:** Conjunto de regras parametrizáveis (prazos, reembolsos, limites) configuradas por evento pelo organizador.
+- **SGE:** Sistema de Gestão de Eventos.
 
-| História de Usuário | Módulo / Requisito Funcional | Critérios de Aceitação Principais | RNFs Relacionados |
+---
+
+## 7. Matriz de Rastreabilidade (4D)
+
+| Ator / Stakeholder | História de Usuário | Requisito Funcional (RF) | Critério BDD | RNF Relacionado | Lacuna Tratada |
+|:---|:---|:---|:---|:---|:---|
+| **Participante** | HU01 - Inscrição com Reserva | RF01 - Trava de Vaga | Cenários 1 e 2 | RNF01 (Concorrência) | OB3 (Tempo de reserva) |
+| **Participante** | HU02 - Cancelamento/Reembolso | RF02 - Gestão de Cancelamentos | Cenários 1 e 2 | RNF04 (Disponibilidade) | OB1 (Prazos de devolução) |
+| **Participante** | HU03 - Lista de Espera | RF03 - Fila Automática | Cenário 1 | RNF03 (Performance) | OB2 (Lista de espera) |
+| **Participante** | HU04 - Emissão de Certificado | RF04 - Certificação Digital | Cenários 1 e 2 | RNF02 (Segurança) | OB4 (Certificados) |
+| **Organizador** | HU05 - Configuração de Políticas | RF05 - Parametria de Eventos | Cenário 1 | RNF02 (Segurança) | OB1, OB2, OB3 |
+| **Palestrante** | HU06 - Consulta LGPD | RF06 - Painel do Palestrante | Cenário 1 | RNF02 (LGPD) | OB7 (Visibilidade de dados) |
+
+---
+
+## 8. Auditoria de Prompts de IA Generativa & Curadoria Humana
+
+| Fase | Prompt Utilizado | Resultado Bruto da IA | Decisão de Curadoria Humana |
 |:---|:---|:---|:---|
-| **HU01** (Cadastro) | Módulo de Gestão de Usuários | Validação de formato de e-mail, verificação de duplicidade, senha mínima de 8 caracteres. | RNF01 (Segurança), RNF02 (Usabilidade) |
-| **HU02** (Login) | Módulo de Autenticação | Login com credenciais válidas, mensagem genérica de erro, redefinição por e-mail. | RNF01 (Segurança), RNF04 (Disponibilidade) |
-| **HU03** (Consulta) | Módulo de Catálogo e Busca | Exibição de produtos, busca por palavra-chave, filtros por categoria e preço. | RNF03 (Performance), RNF02 (Usabilidade) |
-| **HU04** (Carrinho) | Módulo de Vendas / Carrinho | Adição/remoção de itens, cálculo automático de quantidade, subtotal e frete. | RNF03 (Performance), RNF02 (Usabilidade) |
-| **HU05** (Checkout) | Módulo de Pagamentos / Pedidos | Seleção de forma de pagamento (PIX/Cartão/Boleto), confirmação de endereço, geração do número do pedido. | RNF01 (Segurança), RNF03 (Performance), RNF04 (Disponibilidade) |
-
----
-
-## 7. Registro de Prompts de IA Generativa & Curadoria
-
-| Fase | Prompt Utilizado | Resultado da IA Generativa | Ação de Curadoria Humana |
-|:---|:---|:---|:---|
-| **Elicitação** | *"Liste as 5 principais histórias de usuário para uma loja virtual em formato Como/Quero/Para."* | Forneceu as HUs de cadastro, login, busca, carrinho e checkout. | **Aprovado:** Mantidas todas as 5 HUs por representarem o fluxo essencial (Happy Path) de e-commerce. |
-| **Detalhamento BDD** | *"Escreva critérios de aceitação em formato Gherkin (Dado/Quando/Então) para login e cadastro."* | Escreveu cenários simples de login com sucesso e falha. | **Adaptado:** Incluída a regra de segurança de retornar mensagem genérica de erro para evitar enumeração de contas. |
-| **Diagramas Visuais** | *"Crie um diagrama de sequência Mermaid para o fluxo de checkout e um fluxograma de jornada de usuário."* | Gerou código Mermaid para visualização dinâmica direta no GitHub. | **Aprovado:** Integrado ao documento de especificação na seção 2. |
-| **Análise de Exceção** | *"Quais falhas podem ocorrer no carrinho de compras e no checkout?"* | Sugeriu suporte a cupom de desconto e login via redes sociais. | **Descartado:** Removidos cupons e login social neste momento para manter o escopo do MVP alinhado às restrições do projeto. |
+| **Elicitação** | *"Extraia os requisitos do documento Eventus e agrupe as Histórias de Usuário por ator."* | Gerou 12 histórias soltas sem detalhamento de regras. | **Aprovado & Adaptado:** Agrupamos as HUs pelos 4 atores principais (Participante, Organizador, Financeiro, Palestrante) e adicionamos Story Points. |
+| **Tratamento de Lacunas** | *"Como resolver as 9 lacunas (OB1-OB9) de cancelamento e reembolso do documento?"* | Sugeriu inventar um prazo fixo de 24h e reembolso de 50% para todos os eventos. | **Modificado/Corrigido:** Rejeitamos predefinir prazos arbitrários. Criamos o conceito de **Perfil de Política Configurável por Evento** (HU05). |
+| **Diagramas Visuais** | *"Gere código Mermaid para a máquina de estados da inscrição e o fluxo de checkout."* | Gerou diagramas sintaticamente válidos para Mermaid. | **Aprovado:** Integrados na seção 2 do documento para renderização automática no GitHub. |
